@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulatore Certificazione R&amp;S&amp;I – CIR FOOD S.C.</title>
+  <meta name="description" content="Simulatore interattivo per la certificazione dei crediti d'imposta R&amp;S e innovazione tecnologica – CIR FOOD S.C. 2020-2023">
+  <meta name="author" content="Marco Belardi">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #060e18; overflow-x: hidden; }
+    input[type="number"] { outline: none; }
+    input[type="number"]:focus { border-color: #3b82f6 !important; }
+    select { outline: none; cursor: pointer; }
+    select:focus { border-color: #3b82f6 !important; }
+    button:hover { filter: brightness(1.2); }
+    tr:hover { background: rgba(59,130,246,0.05) !important; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a1628; }
+    ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2a5080; }
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+  <script type="text/babel">
+const { useState, useMemo } = React;
+const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } = Recharts;
+
+const PROJECTS = [
+  {id:1,name:"Refettorio del Futuro",period:"2020",cluster:"R&S",trl:"5-6",risk:"basso",years:[2020],creditShare:{2020:0.5}},
+  {id:2,name:"Food Delivery senza cucina + locker",period:"2020–2023",cluster:"R&S",trl:"4-6",risk:"medio",years:[2020,2021,2022,2023],creditShare:{2020:0.5,2021:0.5,2022:0.85,2023:1.0}},
+  {id:3,name:"Analisi sensoriale – Lab CRC",period:"2021–2022",cluster:"R&S",trl:"3-5",risk:"basso",years:[2021,2022],creditShare:{2021:0.5,2022:0.15}},
+  {id:4,name:"Archiviazione documentale e Business Continuity",period:"2020",cluster:"IT",trl:"7",risk:"medio",years:[2020],creditShare:{2020:0.09}},
+  {id:5,name:"Accessibilità locali – inclusione sociale",period:"2020",cluster:"IT",trl:"6-7",risk:"basso",years:[2020],creditShare:{2020:0.09}},
+  {id:6,name:"Controllo approvvigionamento e sicurezza alimentare",period:"2020",cluster:"IT",trl:"6-7",risk:"medio",years:[2020],creditShare:{2020:0.11}},
+  {id:7,name:"Portale web ricette e benessere alimentare",period:"2020",cluster:"IT",trl:"7",risk:"medio",years:[2020],creditShare:{2020:0.09}},
+  {id:8,name:"Piattaforma comunicativa doppio front-end",period:"2020–2021",cluster:"IT",trl:"6-7",risk:"basso",years:[2020,2021],creditShare:{2020:0.09,2021:0.12}},
+  {id:9,name:"Gestione Quaderni Ordini",period:"2020",cluster:"IT",trl:"7",risk:"alto",years:[2020],creditShare:{2020:0.07}},
+  {id:10,name:"Back-office e-commerce",period:"2020",cluster:"IT",trl:"7",risk:"alto",years:[2020],creditShare:{2020:0.07}},
+  {id:11,name:"Ottimizzazione workflow azienda-fornitori",period:"2020–2021",cluster:"IT",trl:"6-7",risk:"medio",years:[2020,2021],creditShare:{2020:0.11,2021:0.14}},
+  {id:12,name:"Educazione alimentare (Moveat, Shuttle 2.0)",period:"2020",cluster:"IT",trl:"5-6",risk:"basso",years:[2020],creditShare:{2020:0.09}},
+  {id:13,name:"Piattaforma ordini/delivery menù Rita",period:"2020",cluster:"IT",trl:"6-7",risk:"basso",years:[2020],creditShare:{2020:0.09}},
+  {id:14,name:"IoT attrezzature: interconnessione impianti",period:"2020",cluster:"IT",trl:"6",risk:"medio",years:[2020],creditShare:{2020:0.10}},
+  {id:15,name:"Educazione alimentare: app, piattaforma, footprint",period:"2021",cluster:"IT",trl:"5-6",risk:"basso",years:[2021],creditShare:{2021:0.16}},
+  {id:16,name:"Auditing: processo migliorato digitale",period:"2021",cluster:"IT",trl:"7",risk:"medio",years:[2021],creditShare:{2021:0.12}},
+  {id:17,name:"App Appetie: tracking alimentare e fisico",period:"2021",cluster:"IT",trl:"6-7",risk:"basso",years:[2021],creditShare:{2021:0.14}},
+  {id:18,name:"Piattaforma Valyouness Flex + Blugift",period:"2021",cluster:"IT",trl:"6-7",risk:"basso",years:[2021],creditShare:{2021:0.14}},
+  {id:19,name:"Nuove strutture produttive: efficientamento",period:"2021–2023",cluster:"IT",trl:"5-7",risk:"medio",years:[2021,2022,2023],creditShare:{2021:0.16,2022:0.30,2023:0.08}},
+  {id:20,name:"Educazione alimentare: carbon/water footprint menù",period:"2022–2023",cluster:"IT",trl:"5-6",risk:"basso",years:[2022,2023],creditShare:{2022:0.25,2023:0.08}},
+  {id:21,name:"Monitoraggio automatizzato codici vincolanti",period:"2022",cluster:"IT",trl:"6-7",risk:"medio",years:[2022],creditShare:{2022:0.20}},
+  {id:22,name:"Sicurezza alimentare e qualifica fornitori",period:"2022",cluster:"IT",trl:"6-7",risk:"medio",years:[2022],creditShare:{2022:0.25}},
+  {id:23,name:"Robot collaborativi produzione pasti ospedalieri",period:"2023",cluster:"IT",trl:"4-6",risk:"basso",years:[2023],creditShare:{2023:0.10}},
+  {id:24,name:"Monitoraggio remoto attrezzature refrigerazione",period:"2023",cluster:"IT",trl:"5-6",risk:"basso",years:[2023],creditShare:{2023:0.08}},
+  {id:25,name:"Riduzione spreco pranzo mensa",period:"2023",cluster:"IT",trl:"6-7",risk:"medio",years:[2023],creditShare:{2023:0.07}},
+  {id:26,name:"Sicurezza alimentare, ricette standardizzate",period:"2023",cluster:"IT",trl:"6-7",risk:"medio",years:[2023],creditShare:{2023:0.10}},
+  {id:27,name:"Proposta alimentare disfagia",period:"2023",cluster:"IT",trl:"5-6",risk:"basso",years:[2023],creditShare:{2023:0.08}},
+  {id:28,name:"Ricette vegetariane innovative per scuole",period:"2023",cluster:"IT",trl:"7",risk:"alto",years:[2023],creditShare:{2023:0.06}},
+  {id:29,name:"Piatto completo serale ristorazione ospedaliera",period:"2023",cluster:"IT",trl:"7",risk:"alto",years:[2023],creditShare:{2023:0.06}},
+  {id:30,name:"Analisi reportistica acquistato vs menù",period:"2023",cluster:"IT",trl:"6-7",risk:"medio",years:[2023],creditShare:{2023:0.07}},
+  {id:31,name:"Reportistica gestionale innovativa",period:"2023",cluster:"IT",trl:"6-7",risk:"medio",years:[2023],creditShare:{2023:0.07}},
+  {id:32,name:"Manutenzione e backup: miglioramento procedure",period:"2023",cluster:"IT",trl:"7-8",risk:"alto",years:[2023],creditShare:{2023:0.05}},
+  {id:33,name:"IoT impianti: sistema informatico-ambiente esterno",period:"2020",cluster:"ITD",trl:"5-6",risk:"basso",years:[2020],creditShare:{2020:0.25}},
+  {id:34,name:"Digitalizzazione magazzini: modelli previsionali",period:"2020",cluster:"ITD",trl:"5-6",risk:"basso",years:[2020],creditShare:{2020:0.30}},
+  {id:35,name:"Digitalizzazione modello Ulisse",period:"2020",cluster:"ITD",trl:"6",risk:"basso",years:[2020],creditShare:{2020:0.25}},
+  {id:36,name:"Digitalizzazione documenti fornitori SAP VIM",period:"2021",cluster:"ITD",trl:"7",risk:"medio",years:[2021],creditShare:{2021:0.18}},
+  {id:37,name:"Gestione documentale rifiuti + monitoraggio",period:"2021–2022",cluster:"ITD",trl:"6-7",risk:"basso",years:[2021,2022],creditShare:{2021:0.20,2022:0.12}},
+  {id:38,name:"Gestione ordini cucina real-time",period:"2021–2022",cluster:"ITD",trl:"6-7",risk:"basso",years:[2021,2022],creditShare:{2021:0.22,2022:0.12}},
+  {id:39,name:"Remote monitoring impianti BMS",period:"2021–2023",cluster:"ITD",trl:"5-7",risk:"basso",years:[2021,2022,2023],creditShare:{2021:0.20,2022:0.15,2023:0.30}},
+  {id:40,name:"Digitalizzazione documentale contract management",period:"2023",cluster:"ITD",trl:"7",risk:"medio",years:[2023],creditShare:{2023:0.20}},
+  {id:41,name:"Digitalizzazione reportistica core acquisti",period:"2022",cluster:"ITD",trl:"6-7",risk:"basso",years:[2022],creditShare:{2022:0.12}},
+  {id:42,name:"KPI automatici real-time per clienti",period:"2021–2023",cluster:"ITD",trl:"5-7",risk:"basso",years:[2021,2022,2023],creditShare:{2021:0.20,2022:0.15,2023:0.30}},
+  {id:43,name:"Modello azienda data-driven",period:"2022",cluster:"ITD",trl:"5-6",risk:"medio",years:[2022],creditShare:{2022:0.10}},
+  {id:44,name:"Digitalizzazione ordini materia prima SAP",period:"2022",cluster:"ITD",trl:"6-7",risk:"basso",years:[2022],creditShare:{2022:0.12}},
+  {id:45,name:"Digitalizzazione offerta cliente e monitoraggio",period:"2022",cluster:"ITD",trl:"6-7",risk:"basso",years:[2022],creditShare:{2022:0.12}},
+  {id:46,name:"Digitalizzazione flusso non conformità",period:"2023",cluster:"ITD",trl:"6-7",risk:"basso",years:[2023],creditShare:{2023:0.20}},
+  {id:47,name:"Catene del valore ciclo chiuso – DPI riciclo",period:"2020",cluster:"ITE",trl:"4-5",risk:"basso",years:[2020],creditShare:{2020:0.50}},
+  {id:48,name:"Prototipo Pel di Carota: sprechi cucine",period:"2020–2021",cluster:"ITE",trl:"4-6",risk:"basso",years:[2020,2021],creditShare:{2020:0.50,2021:1.0}},
+  {id:49,name:"Recupero oli esausti – biocarburante flotta",period:"2022–2023",cluster:"ITE",trl:"4-5",risk:"basso",years:[2022,2023],creditShare:{2022:0.50,2023:0.35}},
+  {id:50,name:"Impronta carbonica organizzazione",period:"2022–2023",cluster:"ITE",trl:"4-6",risk:"basso",years:[2022,2023],creditShare:{2022:0.50,2023:0.35}},
+  {id:51,name:"Valorizzazione raccolta organico",period:"2023",cluster:"ITE",trl:"4-5",risk:"basso",years:[2023],creditShare:{2023:0.30}},
+];
+
+const CLUSTER_CREDITS = {
+  "R&S":  {2020:34020.88,2021:57753.97,2022:121185.76,2023:28767.04},
+  "IT":   {2020:75957.52,2021:38446.78,2022:4412.63, 2023:23713.26},
+  "ITD":  {2020:57301.93,2021:14191.70,2022:58488.93,2023:10666.42},
+  "ITE":  {2020:5241.18, 2021:3251.69, 2022:1361.54, 2023:880.03},
+};
+
+const CLUSTER_COLORS = {"R&S":"#1e6091","IT":"#2d8a4e","ITD":"#7c5cbf","ITE":"#c4782e"};
+const RISK_COLORS = {alto:"#dc2626",medio:"#d97706",basso:"#16a34a"};
+const YEARS = [2020,2021,2022,2023];
+const CLUSTERS = ["R&S","IT","ITD","ITE"];
+
+const fmt = v => v.toLocaleString("it-IT",{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtE = v => "€ "+fmt(Math.round(v));
+const pct = (a,b) => b===0?"–":(a/b*100).toFixed(1)+"%";
+
+function App() {
+  const [certified, setCertified] = useState(() => {
+    const m = {};
+    PROJECTS.forEach(p => { m[p.id] = p.risk !== "alto"; });
+    return m;
+  });
+  const [tab, setTab] = useState("dashboard");
+  const [filterCluster, setFilterCluster] = useState("tutti");
+  const [filterYear, setFilterYear] = useState("tutti");
+  const [filterRisk, setFilterRisk] = useState("tutti");
+  const [feeA, setFeeA] = useState(20000);
+  const [feePct, setFeePct] = useState(5);
+  const [feeMin, setFeeMin] = useState(350);
+  const [feeCpluri, setFeeCpluri] = useState(600);
+  const [feeCparcel, setFeeCparcel] = useState(500);
+  const [feeCora, setFeeCora] = useState(250);
+
+  const toggle = id => setCertified(p => ({...p,[id]:!p[id]}));
+  const selectAll = () => setCertified(p => { const n={}; PROJECTS.forEach(pr=>{n[pr.id]=true}); return n; });
+  const deselectAll = () => setCertified(p => { const n={}; PROJECTS.forEach(pr=>{n[pr.id]=false}); return n; });
+  const presetConservativo = () => {
+    const n = {};
+    PROJECTS.forEach(pr => { n[pr.id] = pr.risk !== "alto" && !(pr.risk === "medio" && pr.trl.includes("7")); });
+    setCertified(n);
+  };
+  const presetOttimistico = () => {
+    const n = {};
+    PROJECTS.forEach(pr => { n[pr.id] = ![29,32].includes(pr.id); });
+    setCertified(n);
+  };
+
+  const stats = useMemo(() => {
+    let totalCredit = 0, certCredit = 0, certCount = 0, totalCount = 51;
+    const byCluster = {}; const byYear = {}; const byClusterYear = {};
+    CLUSTERS.forEach(c => { byCluster[c] = {total:0,cert:0,certProj:0,totProj:0}; });
+    YEARS.forEach(y => { byYear[y] = {total:0,cert:0}; });
+    CLUSTERS.forEach(c => YEARS.forEach(y => { byClusterYear[`${c}-${y}`] = {total:0,cert:0}; }));
+
+    Object.keys(CLUSTER_CREDITS).forEach(c => {
+      YEARS.forEach(y => {
+        const v = CLUSTER_CREDITS[c][y] || 0;
+        totalCredit += v;
+        byCluster[c].total += v;
+        byYear[y].total += v;
+        byClusterYear[`${c}-${y}`].total = v;
+      });
+    });
+
+    PROJECTS.forEach(pr => {
+      const isCert = certified[pr.id];
+      if (isCert) certCount++;
+      pr.years.forEach(y => {
+        const clusterCredit = CLUSTER_CREDITS[pr.cluster]?.[y] || 0;
+        const share = pr.creditShare[y] || 0;
+        const projCredit = clusterCredit * share;
+        if (isCert) {
+          certCredit += projCredit;
+          byCluster[pr.cluster].cert += projCredit;
+          byYear[y].cert += projCredit;
+          byClusterYear[`${pr.cluster}-${y}`].cert += projCredit;
+        }
+      });
+      byCluster[pr.cluster].totProj++;
+      if (isCert) byCluster[pr.cluster].certProj++;
+    });
+
+    const feeB_raw = certCredit * feePct / 100;
+    const feeB_min = certCount * feeMin;
+    const feeB = Math.max(feeB_raw, feeB_min);
+    const pluriCert = PROJECTS.filter(p => certified[p.id] && p.years.length > 1).length;
+    const highRiskCert = PROJECTS.filter(p => certified[p.id] && p.risk !== "basso").length;
+    const estCpluri = Math.min(pluriCert, 4) * feeCpluri;
+    const estCparcel = Math.min(highRiskCert, 6) * feeCparcel;
+    const feeC = estCpluri + estCparcel;
+    const feeTotal = feeA + feeB + feeC;
+    const exposure = totalCredit * 2;
+
+    return { totalCredit, certCredit, certCount, totalCount, byCluster, byYear, byClusterYear,
+             feeB, feeC, feeTotal, feeA, pluriCert, highRiskCert, estCpluri, estCparcel, exposure };
+  }, [certified, feeA, feePct, feeMin, feeCpluri, feeCparcel]);
+
+  const filteredProjects = useMemo(() => {
+    return PROJECTS.filter(p => {
+      if (filterCluster !== "tutti" && p.cluster !== filterCluster) return false;
+      if (filterYear !== "tutti" && !p.years.includes(Number(filterYear))) return false;
+      if (filterRisk !== "tutti" && p.risk !== filterRisk) return false;
+      return true;
+    });
+  }, [filterCluster, filterYear, filterRisk]);
+
+  const chartCluster = CLUSTERS.map(c => ({
+    name: c, certificato: Math.round(stats.byCluster[c].cert), escluso: Math.round(stats.byCluster[c].total - stats.byCluster[c].cert)
+  }));
+  const chartYear = YEARS.map(y => ({
+    name: String(y), certificato: Math.round(stats.byYear[y].cert), escluso: Math.round(stats.byYear[y].total - stats.byYear[y].cert)
+  }));
+  const chartFee = [
+    {name:"A – Fisso", value: stats.feeA, color:"#1e6091"},
+    {name:"B – Variabile", value: Math.round(stats.feeB), color:"#2d8a4e"},
+    {name:"C – Maggiorazioni", value: Math.round(stats.feeC), color:"#c4782e"},
+  ];
+
+  const Tab = ({id,label}) => (
+    <button onClick={()=>setTab(id)} style={{
+      padding:"10px 20px", fontSize:"13px", fontWeight: tab===id?"700":"400", letterSpacing:"0.5px",
+      background: tab===id?"#0f2942":"transparent", color: tab===id?"#e8ecf1":"#8899aa",
+      border:"none", borderBottom: tab===id?"2px solid #3b82f6":"2px solid transparent",
+      cursor:"pointer", textTransform:"uppercase", transition:"all 0.2s"
+    }}>{label}</button>
+  );
+
+  const Kpi = ({label,value,sub,accent}) => (
+    <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"16px 20px",flex:1,minWidth:"180px"}}>
+      <div style={{fontSize:"11px",color:"#6b8299",textTransform:"uppercase",letterSpacing:"1px",marginBottom:"6px"}}>{label}</div>
+      <div style={{fontSize:"26px",fontWeight:"700",color:accent||"#e8ecf1",fontFeatureSettings:"'tnum'"}}>{value}</div>
+      {sub && <div style={{fontSize:"12px",color:"#4a6a8a",marginTop:"4px"}}>{sub}</div>}
+    </div>
+  );
+
+  const RiskBadge = ({risk}) => (
+    <span style={{fontSize:"11px",fontWeight:"600",padding:"2px 8px",borderRadius:"3px",
+      background: risk==="alto"?"#7f1d1d":risk==="medio"?"#78350f":"#14532d",
+      color: risk==="alto"?"#fca5a5":risk==="medio"?"#fcd34d":"#86efac",
+      textTransform:"uppercase",letterSpacing:"0.5px"}}>{risk}</span>
+  );
+
+  return (
+    <div style={{fontFamily:"'JetBrains Mono','SF Mono','Fira Code',monospace",background:"#060e18",color:"#c8d6e5",minHeight:"100vh",fontSize:"13px"}}>
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+      
+      <div style={{background:"#0a1628",borderBottom:"1px solid #1a2d45",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"12px"}}>
+        <div>
+          <div style={{fontSize:"16px",fontWeight:"700",color:"#e8ecf1",letterSpacing:"1px"}}>SIMULATORE CERTIFICAZIONE R&S&I</div>
+          <div style={{fontSize:"11px",color:"#4a6a8a",marginTop:"2px"}}>CIR FOOD S.C. · 00464110352 · Esercizi 2020–2023 · Art. 23 DL 73/2022</div>
+        </div>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+          <button onClick={selectAll} style={btnStyle("#1e3a5f")}>Tutti ✓</button>
+          <button onClick={deselectAll} style={btnStyle("#1e3a5f")}>Nessuno ✗</button>
+          <button onClick={presetConservativo} style={btnStyle("#78350f")}>Conservativo</button>
+          <button onClick={presetOttimistico} style={btnStyle("#14532d")}>Ottimistico</button>
+        </div>
+      </div>
+
+      <div style={{display:"flex",borderBottom:"1px solid #1a2d45",background:"#0a1628",overflowX:"auto"}}>
+        <Tab id="dashboard" label="Dashboard"/>
+        <Tab id="progetti" label="Progetti"/>
+        <Tab id="compenso" label="Compenso"/>
+        <Tab id="rischio" label="Rischio"/>
+      </div>
+
+      <div style={{padding:"20px 24px",maxWidth:"1400px",margin:"0 auto"}}>
+        {tab === "dashboard" && (
+          <div>
+            <div style={{display:"flex",gap:"12px",flexWrap:"wrap",marginBottom:"20px"}}>
+              <Kpi label="Progetti certificati" value={`${stats.certCount} / ${stats.totalCount}`} sub={pct(stats.certCount,stats.totalCount)+" selezionati"}/>
+              <Kpi label="Credito certificato" value={fmtE(stats.certCredit)} sub={`su ${fmtE(stats.totalCredit)} totali (${pct(stats.certCredit,stats.totalCredit)})`}/>
+              <Kpi label="Compenso stimato" value={fmtE(stats.feeTotal)} sub={`A ${fmtE(stats.feeA)} + B ${fmtE(stats.feeB)} + C ${fmtE(stats.feeC)}`} accent="#3b82f6"/>
+              <Kpi label="Esposizione evitata" value={fmtE(stats.certCredit*2)} sub="credito + sanzione 100% (inesistenza)" accent="#f59e0b"/>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"20px"}}>
+              <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"16px"}}>
+                <div style={{fontSize:"11px",color:"#6b8299",textTransform:"uppercase",letterSpacing:"1px",marginBottom:"12px"}}>Credito per cluster</div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={chartCluster} barSize={20}>
+                    <XAxis dataKey="name" tick={{fill:"#6b8299",fontSize:11}} axisLine={{stroke:"#1e3a5f"}}/>
+                    <YAxis tick={{fill:"#6b8299",fontSize:10}} axisLine={{stroke:"#1e3a5f"}} tickFormatter={v=>fmt(v)}/>
+                    <Tooltip contentStyle={{background:"#0f2942",border:"1px solid #1e3a5f",borderRadius:"4px",fontSize:"12px",color:"#c8d6e5"}} formatter={v=>fmtE(v)}/>
+                    <Bar dataKey="certificato" stackId="a" fill="#2d8a4e" radius={[0,0,0,0]}/>
+                    <Bar dataKey="escluso" stackId="a" fill="#4a1d1d" radius={[2,2,0,0]}/>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"16px"}}>
+                <div style={{fontSize:"11px",color:"#6b8299",textTransform:"uppercase",letterSpacing:"1px",marginBottom:"12px"}}>Credito per anno</div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={chartYear} barSize={24}>
+                    <XAxis dataKey="name" tick={{fill:"#6b8299",fontSize:11}} axisLine={{stroke:"#1e3a5f"}}/>
+                    <YAxis tick={{fill:"#6b8299",fontSize:10}} axisLine={{stroke:"#1e3a5f"}} tickFormatter={v=>fmt(v)}/>
+                    <Tooltip contentStyle={{background:"#0f2942",border:"1px solid #1e3a5f",borderRadius:"4px",fontSize:"12px",color:"#c8d6e5"}} formatter={v=>fmtE(v)}/>
+                    <Bar dataKey="certificato" stackId="a" fill="#3b82f6" radius={[0,0,0,0]}/>
+                    <Bar dataKey="escluso" stackId="a" fill="#4a1d1d" radius={[2,2,0,0]}/>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"16px"}}>
+              <div style={{fontSize:"11px",color:"#6b8299",textTransform:"uppercase",letterSpacing:"1px",marginBottom:"12px"}}>Dettaglio per cluster × anno (credito certificato)</div>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
+                  <thead>
+                    <tr>{["Cluster",...YEARS.map(String),"Totale"].map((h,i)=>(
+                      <th key={i} style={{padding:"8px 12px",textAlign:i===0?"left":"right",color:"#6b8299",borderBottom:"1px solid #1e3a5f",fontSize:"10px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {CLUSTERS.map(c => {
+                      const row = YEARS.map(y => stats.byClusterYear[`${c}-${y}`]?.cert || 0);
+                      const total = row.reduce((a,b)=>a+b,0);
+                      return (
+                        <tr key={c} style={{borderBottom:"1px solid #0f2040"}}>
+                          <td style={{padding:"8px 12px",fontWeight:"600",color:CLUSTER_COLORS[c]}}>{c}</td>
+                          {row.map((v,i)=><td key={i} style={{padding:"8px 12px",textAlign:"right",color:v>0?"#c8d6e5":"#2a3f55"}}>{fmtE(v)}</td>)}
+                          <td style={{padding:"8px 12px",textAlign:"right",fontWeight:"700",color:"#e8ecf1"}}>{fmtE(total)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr style={{borderTop:"2px solid #1e3a5f"}}>
+                      <td style={{padding:"8px 12px",fontWeight:"700",color:"#e8ecf1"}}>TOTALE</td>
+                      {YEARS.map(y=><td key={y} style={{padding:"8px 12px",textAlign:"right",fontWeight:"700",color:"#e8ecf1"}}>{fmtE(stats.byYear[y].cert)}</td>)}
+                      <td style={{padding:"8px 12px",textAlign:"right",fontWeight:"700",color:"#3b82f6",fontSize:"14px"}}>{fmtE(stats.certCredit)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "progetti" && (
+          <div>
+            <div style={{display:"flex",gap:"10px",marginBottom:"16px",flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{fontSize:"11px",color:"#6b8299",textTransform:"uppercase"}}>Filtri:</span>
+              <select value={filterCluster} onChange={e=>setFilterCluster(e.target.value)} style={selStyle}>
+                <option value="tutti">Tutti i cluster</option>
+                {CLUSTERS.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={filterYear} onChange={e=>setFilterYear(e.target.value)} style={selStyle}>
+                <option value="tutti">Tutti gli anni</option>
+                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+              </select>
+              <select value={filterRisk} onChange={e=>setFilterRisk(e.target.value)} style={selStyle}>
+                <option value="tutti">Tutti i rischi</option>
+                <option value="alto">Alto</option>
+                <option value="medio">Medio</option>
+                <option value="basso">Basso</option>
+              </select>
+              <span style={{fontSize:"11px",color:"#4a6a8a",marginLeft:"8px"}}>{filteredProjects.length} progetti visualizzati</span>
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
+                <thead>
+                  <tr>{["","#","Progetto","Periodo","Cluster","TRL","Rischio","Credito stim.","Stato"].map((h,i)=>(
+                    <th key={i} style={{padding:"8px 10px",textAlign:i<2?"center":"left",color:"#6b8299",borderBottom:"1px solid #1e3a5f",fontSize:"10px",textTransform:"uppercase",letterSpacing:"0.5px",whiteSpace:"nowrap"}}>{h}</th>
+                  ))}</tr>
+                </thead>
+                <tbody>
+                  {filteredProjects.map(p => {
+                    const isCert = certified[p.id];
+                    const projCredit = p.years.reduce((sum,y) => sum + (CLUSTER_CREDITS[p.cluster]?.[y]||0) * (p.creditShare[y]||0), 0);
+                    return (
+                      <tr key={p.id} onClick={()=>toggle(p.id)} style={{borderBottom:"1px solid #0f2040",cursor:"pointer",opacity:isCert?1:0.45,transition:"opacity 0.2s",background:isCert?"transparent":"#0a0a12"}}>
+                        <td style={{padding:"6px 10px",textAlign:"center"}}>
+                          <div style={{width:"18px",height:"18px",borderRadius:"3px",border:`2px solid ${isCert?"#3b82f6":"#2a3f55"}`,background:isCert?"#3b82f6":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",color:"#fff",transition:"all 0.15s"}}>{isCert?"✓":""}</div>
+                        </td>
+                        <td style={{padding:"6px 10px",textAlign:"center",color:"#4a6a8a",fontWeight:"600"}}>{p.id}</td>
+                        <td style={{padding:"6px 10px",maxWidth:"320px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:isCert?"#c8d6e5":"#4a6a8a"}}>{p.name}</td>
+                        <td style={{padding:"6px 10px",whiteSpace:"nowrap",color:"#6b8299"}}>{p.period}</td>
+                        <td style={{padding:"6px 10px"}}><span style={{color:CLUSTER_COLORS[p.cluster],fontWeight:"600"}}>{p.cluster}</span></td>
+                        <td style={{padding:"6px 10px",color:"#6b8299"}}>{p.trl}</td>
+                        <td style={{padding:"6px 10px"}}><RiskBadge risk={p.risk}/></td>
+                        <td style={{padding:"6px 10px",textAlign:"right",fontFeatureSettings:"'tnum'",color:isCert?"#c8d6e5":"#4a6a8a"}}>{fmtE(projCredit)}</td>
+                        <td style={{padding:"6px 10px",textAlign:"center",fontSize:"11px",fontWeight:"600",color:isCert?"#86efac":"#f87171"}}>{isCert?"CERT":"ESCL"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {tab === "compenso" && (
+          <div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"20px"}}>
+              <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"20px"}}>
+                <div style={{fontSize:"13px",fontWeight:"700",color:"#e8ecf1",marginBottom:"16px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Parametri compenso</div>
+                <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+                  <ParamInput label="A – Onorario fisso (€)" value={feeA} onChange={setFeeA}/>
+                  <ParamInput label="B – Percentuale sul credito (%)" value={feePct} onChange={setFeePct} step={0.5}/>
+                  <ParamInput label="B – Minimo per certificato (€)" value={feeMin} onChange={setFeeMin}/>
+                  <ParamInput label="C – Pluriennale complesso (€/prog)" value={feeCpluri} onChange={setFeeCpluri}/>
+                  <ParamInput label="C – Parcellizzazione (€/prog)" value={feeCparcel} onChange={setFeeCparcel}/>
+                  <ParamInput label="C – Tariffa oraria rettifica (€/h)" value={feeCora} onChange={setFeeCora}/>
+                </div>
+              </div>
+
+              <div>
+                <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"20px",marginBottom:"16px"}}>
+                  <div style={{fontSize:"13px",fontWeight:"700",color:"#e8ecf1",marginBottom:"16px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Risultato</div>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:"13px"}}>
+                    <tbody>
+                      {[
+                        ["Progetti certificati",stats.certCount+" / "+stats.totalCount,""],
+                        ["Credito certificato",fmtE(stats.certCredit),pct(stats.certCredit,stats.totalCredit)],
+                        ["","",""],
+                        ["A – Onorario fisso",fmtE(stats.feeA),pct(stats.feeA,stats.feeTotal)],
+                        ["B – Variabile ("+feePct+"% su credito)",fmtE(stats.feeB),pct(stats.feeB,stats.feeTotal)],
+                        ["C – Maggiorazioni stimate",fmtE(stats.feeC),pct(stats.feeC,stats.feeTotal)],
+                      ].map(([l,v,s],i) => l===""?<tr key={i}><td colSpan={3} style={{padding:"4px",borderBottom:"1px solid #1e3a5f"}}></td></tr>:(
+                        <tr key={i}><td style={{padding:"6px 0",color:"#8899aa"}}>{l}</td><td style={{padding:"6px 0",textAlign:"right",fontWeight:"600",color:"#e8ecf1"}}>{v}</td><td style={{padding:"6px 0",textAlign:"right",color:"#4a6a8a",fontSize:"11px",width:"60px"}}>{s}</td></tr>
+                      ))}
+                      <tr style={{borderTop:"2px solid #3b82f6"}}><td style={{padding:"10px 0",fontWeight:"700",color:"#3b82f6",fontSize:"14px"}}>TOTALE COMPENSO</td><td style={{padding:"10px 0",textAlign:"right",fontWeight:"700",color:"#3b82f6",fontSize:"18px"}}>{fmtE(stats.feeTotal)}</td><td></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"20px"}}>
+                  <div style={{fontSize:"13px",fontWeight:"700",color:"#e8ecf1",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Indici di proporzionalità</div>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
+                    <tbody>
+                      {[
+                        ["Compenso / Credito certificato", pct(stats.feeTotal, stats.certCredit)],
+                        ["Componente A / (A+B)", pct(stats.feeA, stats.feeA + stats.feeB)],
+                        ["Compenso / Esposizione evitata", pct(stats.feeTotal, stats.certCredit * 2)],
+                        ["Esposizione evitata (cred + sanz 100%)", fmtE(stats.certCredit * 2)],
+                      ].map(([l,v],i) => (
+                        <tr key={i}><td style={{padding:"5px 0",color:"#6b8299"}}>{l}</td><td style={{padding:"5px 0",textAlign:"right",fontWeight:"600",color:"#f59e0b"}}>{v}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"20px",marginTop:"16px"}}>
+              <div style={{fontSize:"13px",fontWeight:"700",color:"#e8ecf1",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Composizione compenso</div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={chartFee} layout="vertical" barSize={28}>
+                  <XAxis type="number" tick={{fill:"#6b8299",fontSize:10}} axisLine={{stroke:"#1e3a5f"}} tickFormatter={v=>"€ "+fmt(v)}/>
+                  <YAxis type="category" dataKey="name" tick={{fill:"#8899aa",fontSize:11}} width={130} axisLine={{stroke:"#1e3a5f"}}/>
+                  <Tooltip contentStyle={{background:"#0f2942",border:"1px solid #1e3a5f",borderRadius:"4px",fontSize:"12px",color:"#c8d6e5"}} formatter={v=>fmtE(v)}/>
+                  <Bar dataKey="value" radius={[0,4,4,0]}>
+                    {chartFee.map((e,i)=><Cell key={i} fill={e.color}/>)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {tab === "rischio" && (
+          <div>
+            <div style={{display:"flex",gap:"12px",flexWrap:"wrap",marginBottom:"20px"}}>
+              {["alto","medio","basso"].map(r => {
+                const count = PROJECTS.filter(p=>p.risk===r).length;
+                const certN = PROJECTS.filter(p=>p.risk===r&&certified[p.id]).length;
+                return (
+                  <div key={r} style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"16px 24px",flex:1,minWidth:"200px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}><RiskBadge risk={r}/><span style={{fontSize:"11px",color:"#6b8299"}}>{count} progetti</span></div>
+                    <div style={{fontSize:"22px",fontWeight:"700",color:RISK_COLORS[r]}}>{certN} certificati</div>
+                    <div style={{fontSize:"11px",color:"#4a6a8a"}}>{count-certN} esclusi</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"6px",padding:"20px"}}>
+              <div style={{fontSize:"13px",fontWeight:"700",color:"#e8ecf1",marginBottom:"16px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Red flag e criticità</div>
+              {[
+                {title:"Composizione spese",level:"alto",desc:"Solo personale (A) e consulenze (D). Assenza totale di beni strumentali (B), privative (B-bis), materiali (E). Atipico per R&S strutturata."},
+                {title:"Parcellizzazione progetti IT",level:"alto",desc:"10 progetti IT nel 2020, 12 nel 2023. Rischio di contestazione come attività ordinaria frammentata."},
+                {title:"Progetti a basso contenuto innovativo",level:"alto",desc:"Progetti nn. 9, 10, 28, 29, 32 presentano profilo critico. Ricette vegetariane, piatto serale, backup IT."},
+                {title:"Qualificazione inesistenza credito",level:"alto",desc:"AdE propende per inesistenza (non spettanza): sanzione 100-200%, termine 8 anni, art. 10-quater c.2 DLgs 74/2000 (18 mesi – 6 anni)."},
+                {title:"Assenza asseverazioni",level:"medio",desc:"Questionario Promexia: asseverazioni = No. Le perizie giurate potrebbero supplire ma il punto va chiarito."},
+                {title:"Confine R&S / IT",level:"medio",desc:"RS01 nelle annualità 2022-2023 potrebbe essere più correttamente classificato IT. Impatto su aliquota (20% vs 10%)."},
+                {title:"Coerenza pluriennale RS01",level:"medio",desc:"Costi variabili: 374K (2020) → 733K (2022) → 362K (2023). Variazione +96% tra 2021 e 2022 da giustificare."},
+                {title:"Consulente unico",level:"basso",desc:"Value Target Srl ha redatto tutti i fascicoli, perizie e relazioni. Verificare indipendenza e qualifiche del perito."},
+              ].map((rf,i) => (
+                <div key={i} style={{padding:"12px 0",borderBottom:i<7?"1px solid #0f2040":"none",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+                  <RiskBadge risk={rf.level}/>
+                  <div><div style={{fontWeight:"600",color:"#c8d6e5",marginBottom:"4px"}}>{rf.title}</div><div style={{fontSize:"12px",color:"#6b8299",lineHeight:"1.5"}}>{rf.desc}</div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ParamInput({label,value,onChange,step=1}) {
+  return (
+    <div>
+      <label style={{fontSize:"11px",color:"#6b8299",display:"block",marginBottom:"4px"}}>{label}</label>
+      <input type="number" value={value} step={step} onChange={e=>onChange(Number(e.target.value))}
+        style={{width:"100%",padding:"8px 12px",background:"#060e18",border:"1px solid #1e3a5f",borderRadius:"4px",color:"#e8ecf1",fontSize:"14px",fontFamily:"inherit",fontFeatureSettings:"'tnum'"}}/>
+    </div>
+  );
+}
+
+const btnStyle = (bg) => ({
+  padding:"6px 14px",fontSize:"11px",fontWeight:"600",background:bg,color:"#e8ecf1",
+  border:"1px solid rgba(255,255,255,0.1)",borderRadius:"4px",cursor:"pointer",letterSpacing:"0.3px",fontFamily:"inherit"
+});
+const selStyle = {
+  padding:"6px 10px",fontSize:"12px",background:"#0a1929",border:"1px solid #1e3a5f",borderRadius:"4px",color:"#c8d6e5",fontFamily:"inherit"
+};
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  </script>
+</body>
+</html>
